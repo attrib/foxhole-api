@@ -1,0 +1,8 @@
+node_modules
+dolt
+.git
+.dockerignore
+.gitignore
+.idea
+.env
+start.bash

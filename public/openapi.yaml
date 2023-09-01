@@ -1,0 +1,676 @@
+openapi: 3.0.3
+info:
+  title: Improved Foxhole War API
+  description: |-
+    Just and idea how the foxhole API could be improved or how a proxy could look like.
+    There is no work done for this yet!
+  version: 1.0.0
+externalDocs:
+  description: Offical API
+  url: https://github.com/clapfoot/warapi
+servers:
+- url: https://api.warden.express
+tags:
+- name: war
+  description: Acces to War
+- name: warReport
+  description: Access to War Reports
+- name: map
+  description: Access to Map data
+paths:
+  /worldconquest/war:
+    get:
+      tags:
+      - war
+      description: "Get a list of wars, can be filtered"
+      operationId: worldconquestWarGET
+      parameters:
+      - name: current
+        in: query
+        description: Only gets current war
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: boolean
+          default: false
+      - name: shard
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Shard'
+      - name: $filter
+        in: query
+        description: "Some filter logic, TBD"
+        required: false
+        style: deepObject
+        explode: true
+        schema:
+          $ref: '#/components/schemas/filter'
+      responses:
+        "200":
+          description: List of wars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/War'
+                x-content-type: application/json
+      x-swagger-router-controller: War
+  /worldconquest/war/{id}:
+    get:
+      tags:
+      - war
+      description: "Get the war by the war id (no shard needed, ids are unique)"
+      operationId: worldconquestWarIdGET
+      parameters:
+      - name: id
+        in: path
+        description: ID of war
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: War by Id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/War'
+      x-swagger-router-controller: War
+  /worldconquest/war/{shard}/{number}:
+    get:
+      tags:
+      - war
+      description: Get the war by shard and war number
+      operationId: worldconquestWarShardNumberGET
+      parameters:
+      - name: shard
+        in: path
+        description: shard
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Shard'
+      - name: number
+        in: path
+        description: war number
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: War
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/War'
+      x-swagger-router-controller: War
+  /worldconquest/warReport/{mapName}:
+    get:
+      tags:
+      - warReport
+      description: |-
+        For this a DB like influx would make sense.
+
+        Similar to (offical API)[https://github.com/clapfoot/warapi#get-map-war-report-v027], differs that its possible to define start/end date and past wars.
+      operationId: worldconquestWarReportMapNameGET
+      parameters:
+      - name: mapName
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: warId
+        in: query
+        description: Set war to fetch data from
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          default: current war on able
+      - name: start
+        in: query
+        description: start date (defaults to start of war)
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: datetime
+          default: 1970-01-01T00:00:00
+      - name: end
+        in: query
+        description: end date (defaults to end of war or now)
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: datetime
+          default: 2038-01-19T03:14:08
+      responses:
+        "200":
+          description: WarReport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarReport'
+      x-swagger-router-controller: WarReport
+  /worldconquest/maps:
+    get:
+      tags:
+      - map
+      description: "Similar to [offical API](https://github.com/clapfoot/warapi#map-data),\
+        \ differs thats possible to fetch it for old wars"
+      operationId: worldconquestMapsGET
+      parameters:
+      - name: warId
+        in: query
+        description: Set war to fetch data from
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          default: current war on able
+      responses:
+        "200":
+          description: Available Maps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                x-content-type: application/json
+      x-swagger-router-controller: Map
+  /worldconquest/maps/data:
+    get:
+      tags:
+      - map
+      description: |-
+        **This is currently only a copy with minor improvments, not sure if this should change**
+
+        Similar to [offical API](https://github.com/clapfoot/warapi#get-dynamic-map-data), differs thats possible to fetch it for old wars.
+
+        Dynamic map data includes map icons that could change over the lifecycle of a map. This includes static bases and static base build sites.
+
+        Team-specific data and forward bases are excluded.
+      operationId: worldconquestMapsDataGET
+      parameters:
+      - name: mapName
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: warId
+        in: query
+        description: Set war to fetch data from
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          default: current war on able
+      responses:
+        "200":
+          description: Map data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapData'
+      x-swagger-router-controller: Map
+  /worldconquest/maps/changes:
+    get:
+      tags:
+      - map
+      description: Get map changes
+      operationId: worldconquestMapsChangesGET
+      parameters:
+      - name: warId
+        in: query
+        description: Set war to fetch data from
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          default: current war on able
+      - name: objectId
+        in: query
+        description: Filter by specific object id - only want get changes for a specific
+          town
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: mapName
+        in: query
+        description: Filter by specific map - only want get changes for a specific
+          map
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: lastId
+        in: query
+        description: Use last id from last response to only get changes since then.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: changedSince
+        in: query
+        description: "Similar to last id, but with a timestamp, you should use lastId\
+          \ for most accurate results."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: datetime
+      - name: changedTill
+        in: query
+        description: Only useful if a specific date range is of interest
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: datetime
+      - name: page
+        in: query
+        description: Pagination
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Pagination - Max limit 1000
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Map data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+      x-swagger-router-controller: Map
+components:
+  schemas:
+    Shard:
+      type: string
+      default: able
+      enum:
+      - able
+      - baker
+      - charlie
+      - dev
+    War:
+      type: object
+      properties:
+        shard:
+          $ref: '#/components/schemas/Shard'
+        warId:
+          type: string
+          description: unique id for the war
+        warNmber:
+          type: integer
+          description: current war number for the shard
+        winner:
+          type: string
+          enum:
+          - NONE
+          - WARDENS
+          - COLONIALS
+        conquestStartTime:
+          type: integer
+          description: "unix time stamp for when conquest started, or null if it hasn't\
+            \ started yet"
+          nullable: true
+        conquestEndTime:
+          type: integer
+          description: "unix time stamp for when conquest ended, or null if it hasn't\
+            \ ended yet"
+          nullable: true
+        resistanceStartTime:
+          type: integer
+          description: "unix time stamp for when resistance phase started, or null\
+            \ if it hasn't started yet"
+          nullable: true
+        requiredVictoryTowns:
+          type: integer
+          description: "number of victory towns required to win the war. static value,\
+            \ as from offical API"
+        victoryTowns:
+          $ref: '#/components/schemas/War_victoryTowns'
+      example:
+        victoryTowns:
+          WARDENS: 2
+          COLONIALS: 7
+          required: 9
+        winner: NONE
+        conquestEndTime: 1
+        warNmber: 0
+        warId: warId
+        requiredVictoryTowns: 5
+        shard: able
+        resistanceStartTime: 5
+        conquestStartTime: 6
+    WarReport:
+      type: object
+      properties:
+        warId:
+          type: string
+          description: unique id for the war
+        totalEnlistments:
+          type: integer
+        colonialCasualties:
+          type: integer
+        wardenCasualties:
+          type: integer
+        dayOfWar:
+          type: integer
+      example:
+        wardenCasualties: 1
+        dayOfWar: 5
+        totalEnlistments: 0
+        warId: warId
+        colonialCasualties: 6
+    MapData:
+      type: object
+      properties:
+        warId:
+          type: string
+          description: unique id for the war
+        lastUpdated:
+          type: string
+          description: timestamp of last update
+          format: datetime
+        mapItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/MapData_mapItems'
+      example:
+        lastUpdated: lastUpdated
+        mapItems:
+        - teamId: NONE
+          iconType: 0
+          isScorched: false
+          x: 6.02745618307040320615897144307382404804229736328125
+          flags: 5
+          "y": 1.46581298050294517310021547018550336360931396484375
+          text: text
+          isTownClaimed: false
+          iconCategory: Marker
+          objectId: objectId
+          isVictory: false
+          iconTypeMapped: Major
+        - teamId: NONE
+          iconType: 0
+          isScorched: false
+          x: 6.02745618307040320615897144307382404804229736328125
+          flags: 5
+          "y": 1.46581298050294517310021547018550336360931396484375
+          text: text
+          isTownClaimed: false
+          iconCategory: Marker
+          objectId: objectId
+          isVictory: false
+          iconTypeMapped: Major
+        warId: warId
+    MapChange:
+      type: object
+      properties:
+        objectId:
+          type: string
+        time:
+          type: string
+          format: datetime
+        mapName:
+          type: string
+        text:
+          type: string
+          example: The Linn of Mercy - The River Mercy Shipyard was Taken by Wardens
+        changed:
+          type: array
+          items:
+            $ref: '#/components/schemas/MapChange_changed'
+      example:
+        time: time
+        mapName: mapName
+        text: The Linn of Mercy - The River Mercy Shipyard was Taken by Wardens
+        objectId: objectId
+        changed:
+        - teamId: NONE
+          iconType: 0
+          isScorched: false
+          flags: 6
+          isTownClaimed: false
+          isVictory: false
+        - teamId: NONE
+          iconType: 0
+          isScorched: false
+          flags: 6
+          isTownClaimed: false
+          isVictory: false
+    filter:
+      type: object
+      properties:
+        name:
+          type: string
+        operator:
+          type: string
+        value:
+          type: string
+    inline_response_200:
+      type: object
+      properties:
+        lastId:
+          type: string
+          description: Used for filtering future calls
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MapChange'
+      example:
+        changes:
+        - time: time
+          mapName: mapName
+          text: The Linn of Mercy - The River Mercy Shipyard was Taken by Wardens
+          objectId: objectId
+          changed:
+          - teamId: NONE
+            iconType: 0
+            isScorched: false
+            flags: 6
+            isTownClaimed: false
+            isVictory: false
+          - teamId: NONE
+            iconType: 0
+            isScorched: false
+            flags: 6
+            isTownClaimed: false
+            isVictory: false
+        - time: time
+          mapName: mapName
+          text: The Linn of Mercy - The River Mercy Shipyard was Taken by Wardens
+          objectId: objectId
+          changed:
+          - teamId: NONE
+            iconType: 0
+            isScorched: false
+            flags: 6
+            isTownClaimed: false
+            isVictory: false
+          - teamId: NONE
+            iconType: 0
+            isScorched: false
+            flags: 6
+            isTownClaimed: false
+            isVictory: false
+        lastId: lastId
+    War_victoryTowns:
+      type: object
+      properties:
+        WARDENS:
+          type: integer
+          description: victory towns hold by Warden
+        COLONIALS:
+          type: integer
+          description: victory towns hold by Colonials
+        required:
+          type: integer
+          description: required victory towns (scorched victory towns are subtracted)
+      example:
+        WARDENS: 2
+        COLONIALS: 7
+        required: 9
+    MapData_mapItems:
+      type: object
+      properties:
+        objectId:
+          type: string
+          description: This is a generated id which persists through the war
+        teamId:
+          type: string
+          enum:
+          - NONE
+          - WARDENS
+          - COLONIALS
+        text:
+          type: string
+          description: text string as it would appear on the map ingame
+        iconType:
+          type: integer
+          description: https://github.com/clapfoot/warapi#map-icons
+        iconCategory:
+          type: string
+          description: icon category
+          enum:
+          - Marker
+          - Town
+          - Field
+          - Mine
+          - Industry
+          - Home
+          - Special
+        iconTypeMapped:
+          type: string
+          description: icon types mapped to a string
+          enum:
+          - Major
+          - Minor
+          - Forward Base
+          - Relic Base
+          - Town Base
+          - Keep
+          - Observation Tower
+          - Fort
+          - Salvage Field
+          - Component Field
+          - Sulfur Field
+          - Coal Field
+          - Oil Field
+          - Sulfur Mine
+          - Salvage Mine
+          - Component Mine
+          - Oil Well
+          - Hospital
+          - Vehicle Factory
+          - Refinery
+          - Shipyard
+          - Tech Center
+          - Ammo Factory
+          - World Map Tent
+          - Travel Tent
+          - Training Area
+          - Rocket Site
+          - Storm Cannon
+          - Intel Center
+        x:
+          type: number
+          description: normalized map coordinate
+        "y":
+          type: number
+          description: normalized map coordinate
+        flags:
+          type: integer
+          description: https://github.com/clapfoot/warapi#map-flags
+        isVictory:
+          type: boolean
+          default: false
+        isScorched:
+          type: boolean
+          default: false
+        isTownClaimed:
+          type: boolean
+          default: false
+      example:
+        teamId: NONE
+        iconType: 0
+        isScorched: false
+        x: 6.02745618307040320615897144307382404804229736328125
+        flags: 5
+        "y": 1.46581298050294517310021547018550336360931396484375
+        text: text
+        isTownClaimed: false
+        iconCategory: Marker
+        objectId: objectId
+        isVictory: false
+        iconTypeMapped: Major
+    MapChange_changed:
+      type: object
+      properties:
+        teamId:
+          type: string
+          enum:
+          - NONE
+          - WARDENS
+          - COLONIALS
+        iconType:
+          type: integer
+          description: https://github.com/clapfoot/warapi#map-icons
+        flags:
+          type: integer
+          description: https://github.com/clapfoot/warapi#map-flags
+        isVictory:
+          type: boolean
+          default: false
+        isScorched:
+          type: boolean
+          default: false
+        isTownClaimed:
+          type: boolean
+          default: false
+      description: Only properties changed will be available
+      example:
+        teamId: NONE
+        iconType: 0
+        isScorched: false
+        flags: 6
+        isTownClaimed: false
+        isVictory: false

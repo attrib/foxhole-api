@@ -1,0 +1,7 @@
+.idea
+dolt
+node_modules
+
+## VS Code
+.history
+.vscode

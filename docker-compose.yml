@@ -1,0 +1,32 @@
+version: "3.4"
+
+services:
+
+  map:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    image: attribdd/foxhole-api:dev
+    restart: always
+    volumes:
+      - ./:/app
+    environment:
+      SECRET: sessionStorageSecret
+    expose:
+      - 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.map.rule=Host(`api.warden.express`)"
+      - "traefik.http.routers.map.entrypoints=websecure"
+      - "traefik.http.routers.map.tls.certresolver=le"
+
+  dolt:
+    image: dolthub/dolt-sql-server:latest
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./dolt:/var/lib/dolt
+    environment:
+      - DOLT_USER_NAME=map
